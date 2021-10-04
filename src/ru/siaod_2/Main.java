@@ -42,6 +42,13 @@ class HashTable implements Serializable  {
             table[i] = null;
         primeSize = getPrime();
     }
+    /**
+     * Проблема коллизии - когда мы можем дважды зайти в одну ячейку массива, ведь представить функцию,
+     * которая ставит в сравнение каждому элементу совершенно различные натуральные числа просто невозможно.
+     * Именно так возникает проблема коллизии, или проблемы, когда хеш-функция выдает
+     * одинаковое натуральное число для разных элементов. Для решения данной проблемы можно воспользоваться
+     * либо методом цепочек, либо методом двойного хеширования
+    */
 
     private int hash_function_1(String y) {
         int hash_functionVal1 = y.hashCode();
@@ -168,13 +175,15 @@ public class Main {
         System.out.println("Element was deleted");
         ht.printHashTable();
 
-
+        float time1 = System.nanoTime();
         System.out.println("\n\nFinding the exact element");
         try {
             System.out.println(ht.find_by_key("12345123451234512345").toString() + "\n\n");
         } catch (NullPointerException e) {
             System.out.println("No such element\n\n");
         }
+        float time2 = System.nanoTime() - time1;
+        System.out.println("Finding time (nano) = " + time2);
 
         System.out.println("Reading table from the file........../");
         ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream("table.txt"));
