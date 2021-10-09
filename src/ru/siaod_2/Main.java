@@ -1,16 +1,27 @@
 package ru.siaod_2;
 
+
 import java.io.*;
 
 class Data implements Serializable  {
     String key;
     String author;
     String name;
+    boolean Pdel;
+    boolean Pins;
+    // 1) ѕризнак удаленной €чейки, вместо обнулени€ €чейки, € буду выставл€ть ей значение True у признака,
+    // и при поиске элемента € буду провер€ть данный признак.
+    // 2) ѕризнак пустой €чейки
+
+    public Data() {
+        Pins = true;
+    }
 
     public Data(String key, String author, String name) {
         this.key = key;
         this.author = author;
         this.name = name;
+        Pins = false;
     }
 
     public Data clone() {
@@ -39,7 +50,7 @@ class HashTable implements Serializable  {
 
         
         for (int i = 0; i < HASH_TABLE_SIZE; i++)
-            table[i] = null;
+            table[i] = new Data();
         primeSize = getPrime();
     }
     /**
@@ -93,9 +104,8 @@ class HashTable implements Serializable  {
     public Data find_by_key(String key) {
         int hash1 = hash_function_1(key);
         int hash2 = hash_function_2(key);
-
         while (table[hash1] != null
-                && !table[hash1].key.equals(key)) {
+                && !table[hash1].key.equals(key) && !table[hash1].Pdel) {
             hash1 += hash2;
             hash1 %= HASH_TABLE_SIZE;
         }
@@ -107,26 +117,26 @@ class HashTable implements Serializable  {
             rehash_table();
         }
         int hashing1 = hash_function_1(key);
-        int hashing2 = hash_function_2(key);
-        while (table[hashing1] != null) {
+    int hashing2 = hash_function_2(key);
+        while (table[hashing1] == null || !table[hashing1].Pins) {
             hashing1 += hashing2;
             hashing1 %= HASH_TABLE_SIZE;
         }
 
         table[hashing1] = new Data(key, author, name);
         size++;
-        save_file();
+       // save_file();
     }
     
     public void remove_element(String key) {
         int hash1 = hash_function_1(key);
         int hash2 = hash_function_2(key);
-        while (table[hash1] != null
+        while (!table[hash1].Pins
                 && !table[hash1].key.equals(key)) {
             hash1 += hash2;
             hash1 %= HASH_TABLE_SIZE;
         }
-        table[hash1] = null;
+        table[hash1].Pdel = true;
         size--;
         save_file();
     }
@@ -136,7 +146,7 @@ class HashTable implements Serializable  {
     public void printHashTable() {
         System.out.println("\nHash Table");
         for (int i = 0; i < HASH_TABLE_SIZE; i++)
-            if (table[i] != null)
+            if (!table[i].Pins && !table[i].Pdel)
                 System.out.println("ISBM = " + table[i].key + " | Author: " + table[i].author + " | Book = " + table[i].name);
     }
 
@@ -144,23 +154,44 @@ class HashTable implements Serializable  {
         Data[] oldTable = table.clone();
         HASH_TABLE_SIZE *= 2;
         table = new Data[HASH_TABLE_SIZE];
+        for (int i = 0; i < HASH_TABLE_SIZE; i++)
+            table[i] = new Data();
         for (Data data : oldTable) {
             int hashing1 = hash_function_1(data.key);
             int hashing2 = hash_function_2(data.key);
-            while (table[hashing1] != null) {
+            while (!table[hashing1].Pins) {
                 hashing1 += hashing2;
                 hashing1 %= HASH_TABLE_SIZE;
             }
             table[hashing1] = data.clone();
         }
     }
+
 }
 
 
 public class Main {
+
+    private static long rnd(long max) {
+        return (long) (Math.random() * ++max);
+    }
+
+    private static String random_key() {
+        long key_rnd = 1000000000000000000L;
+        long rnd_long = rnd(key_rnd);
+        return (Long.toString(rnd_long) + "11");
+    }
+
+    public static String random_chars() {
+        String[] authors = new String[] {"a", "q", "qwr", "gmjh", "umu", "kjnb", "eah", "tny", "mum", "fgld", "tooto"};
+        int n = (int) Math.floor(Math.random() * authors.length);
+        return authors[n];
+    }
+
     public static void main(String[] args) throws IOException, ClassNotFoundException {
-        HashTable ht = new HashTable(2);
+        HashTable ht = new HashTable(7);
         System.out.println("Hash Table was created\n");
+
 
         System.out.println("Starting adding elements\n");
         ht.insert_element("12345678901234567890", "Pushkin A.S.", "Onegin");
@@ -168,6 +199,9 @@ public class Main {
         ht.insert_element("09876543210987654321", "Krylov N.S.", "Lygushka and Vol");
         ht.insert_element("12312312340980980987", "Lermontov M.Y.", "Mciri");
         ht.insert_element("12345123451234512345", "Maykovski V.V.", "About It");
+        for (int i = 0; i<30; i++) {
+            ht.insert_element(random_key(), random_key(), random_key());
+        }
         System.out.println("Elements were added\n");
         ht.printHashTable();
 
@@ -178,12 +212,19 @@ public class Main {
         float time1 = System.nanoTime();
         System.out.println("\n\nFinding the exact element");
         try {
-            System.out.println(ht.find_by_key("12345123451234512345").toString() + "\n\n");
+            System.out.println(ht.find_by_key("12312312340980980987").toString() + "\n\n");
         } catch (NullPointerException e) {
             System.out.println("No such element\n\n");
         }
         float time2 = System.nanoTime() - time1;
         System.out.println("Finding time (nano) = " + time2);
+
+        System.out.println("\n\nFinding the deleted element");
+        try {
+            System.out.println(ht.find_by_key("09876543210987654321").toString() + "\n\n");
+        } catch (NullPointerException e) {
+            System.out.println("No such element\n\n");
+        }
 
         System.out.println("Reading table from the file........../");
         ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream("table.txt"));
